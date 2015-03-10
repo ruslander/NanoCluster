@@ -6,9 +6,9 @@ Leader election is done accoring to Bully algorhitm http://en.wikipedia.org/wiki
 
 How to use it 
 
-1) define the list of host:port each member you want to participate in the cluster
+1) define the list of host:port for each member you want to participate in the cluster
 3) use host:port to create an instance of NanoClusterEngine in each app domain
-2) at run-time you can poll IsCoordinatorProcess on NanoClusterEngine gives you 
+2) at run-time you can check the IsCoordinatorProcess on NanoClusterEngine 
  
 
 Usage
