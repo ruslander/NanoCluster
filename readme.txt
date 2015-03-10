@@ -17,14 +17,14 @@ var cluster = new NanoClusterEngine(
     // engine host	
     "tcp://localhost:5555",
 
-    // all members, ascending prioritized, from least to most important						
-    "tcp://localhost:5555,tcp://localhost:5556,tcp://localhost:5557"	
+    // all members, ascending prioritized, from least to most important
+    "tcp://localhost:5555,tcp://localhost:5556,tcp://localhost:5557"
     );
 
 while (true)
 {
     Thread.Sleep(1000);
-    var whoami = (cluster.IsCoordinatorProcess ? "leader" : "follower");	
+    var whoami = (cluster.IsCoordinatorProcess ? "leader" : "follower");
     Console.WriteLine("Cli \\> " + whoami);
 }
 
