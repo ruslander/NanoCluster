@@ -1,0 +1,25 @@
+NanoCluster
+
+Yes, a small footprint clustering infrastructure over NetMq.
+Leader election is done accoring to Bully algorhitm http://en.wikipedia.org/wiki/Bully_algorithm
+
+
+How to use it 
+
+1) define the list of host:port each member you want to participate in the cluster
+3) use host:port to create an instance of NanoClusterEngine in each app domain
+2) at run-time you can poll IsCoordinatorProcess on NanoClusterEngine gives you 
+ 
+
+Usage
+	var cluster = new NanoClusterEngine(
+	    "tcp://localhost:5555",						// engine host
+	    "tcp://localhost:5555,tcp://localhost:5556,tcp://localhost:5557"	// all members
+	    );
+
+	while (true)
+	{
+	    Thread.Sleep(1000);
+	    Console.WriteLine("Cli \\> " + (cluster.IsCoordinatorProcess ? "leader" : "follower"));
+	}
+
