@@ -22,7 +22,7 @@ The minimal configuration you need to get up and running in 3 steps:
 **3** Agree with you it's not fun, sorry no nuget yet. Yes, is that simple.
 
 ## Zero configuration ##
-Automatic Peer Discovery, that's right. UDP broadcast is a prerequisite. If you are running in the cloud make sure is available. Run the following code at your endpoint start up
+Automatic Peer Discovery, that's right. If you are running in the cloud make sure UDP broadcast is available. Run the parameter-less constructor overload at your endpoint start up
 
 ```csharp
 var cluster = new NanoClusterEngine();
