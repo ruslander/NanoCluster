@@ -6,6 +6,7 @@ Use it when :
 
 - a set of endpoints are mutating the same state and you want to allow just one
 - you want to enforce authority or to coordinate a set of services
+- implementing Bully algorithm is not your competitive advantage
 - Zookeeper is an overkill
 
 All the boilerplate code is encapsulated in the implementation details which we took care of.  
@@ -61,5 +62,7 @@ The project comes along with samples. For now we have examples of 2 clusters, st
 
 
 
-## Feel free to contribute ##
-or ping me at [@ruslanrusu](https://twitter.com/ruslanrusu) if you have any questions
+## In development ##
+Contributors: [@ruslanrusu](https://twitter.com/ruslanrusu) 
+
+Send me pull requests so I can add you to the contributor list
