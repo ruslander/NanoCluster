@@ -20,16 +20,19 @@ No leaking abstractions, code against small foot print Api.
 
 **3** Agree with you it's not fun, sorry no nuget yet
 
-## Zero configuration ##
-Automatic Peer Discovery, that's right. If you are running in the cloud make sure UDP broadcast is available. Run the parameter-less constructor overload at your endpoint start up
+## Configuration ##
+The configuration model supports 2 modes. *Static configuration mode* which is provided at start-up from a config file. The second option is *Zero configuration mode*. 
+
+## Zero configuration mode ##
+The configuration model is populated by analyzing the UDP broadcast. If you are running in the cloud make sure UDP broadcast is available. You set this mode by running the parameter-less constructor overload at your endpoint start up.
 
 ```csharp
 var cluster = new NanoClusterEngine();
 ```
 At run-time you can check the ```IsCoordinatorProcess``` on ```NanoClusterEnginev```
 
-## Static configuration ##
-This is the way to run it it on premise when the node ip addresses are well known and rarely change.
+## Static configuration mode ##
+This is the way to run it when the node ip addresses are well known and rarely change.
 
 1. define the list of host:port for each member you want to participate in the cluster   
 2. use host:port to create an instance of ```NanoClusterEngine``` in each app domain
