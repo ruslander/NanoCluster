@@ -14,7 +14,7 @@ No leaking abstractions, code against small foot print Api.
 
 ## Distribution ##
 
-**1** Clone this, build and after copy from bin into your project's lib folder 2 DLL's ```NanoCluster.dl``` and ```NetMQ.dll``` 
+**1** Clone this, build, copy from bin into your project's lib folder 2 DLL's ```NanoCluster.dl``` and ```NetMQ.dll``` 
 
 **2** Reference both DLL's in any endpoint which needs coordination
 
