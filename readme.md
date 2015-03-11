@@ -13,18 +13,26 @@ No leaking abstractions, code against small foot print Api.
 ## Distribution ##
 The minimal configuration you need to get up and running in 3 steps:
 
-**1** Clone this, build and after copy from bin into your project's lib folder 2 DLL's ```NanoCluster.dl```l and ```NetMQ.dll``` 
+**1** Clone this, build and after copy from bin into your project's lib folder 2 DLL's ```NanoCluster.dl``` and ```NetMQ.dll``` 
 
 **2** Reference both DLL's in any endpoint which needs coordination
 
 **3** Agree with you it's not fun, sorry no nuget yet. Yes, is that simple.
 
+## 0 configuration ##
+Automatic Peer Discovery, that's right. UDP broadcast is a prerequisite. If you are running in the cloud make sure is available. Run the following code at your endpoint start up
+
+```csharp
+var cluster = new NanoClusterEngine();
+```
+At run-time you can check the ```IsCoordinatorProcess``` on ```NanoClusterEnginev```
+
 ## Static configuration ##
 This is the way to run it it on premise when the node ip addresses are well known and rarely change.
 
 1. define the list of host:port for each member you want to participate in the cluster   
-2. use host:port to create an instance of NanoClusterEngine in each app domain
-3. at run-time you can check the IsCoordinatorProcess on NanoClusterEngine
+2. use host:port to create an instance of ```NanoClusterEngine``` in each app domain
+3. at run-time you can check the ```IsCoordinatorProcess``` on ```NanoClusterEngine```
 
 
 ```csharp
@@ -44,13 +52,8 @@ while (true)
 }
 ```
 
-## Automatic Peer Discovery ##
-0 configuration, that's right. UDP broadcast a prerequisite in the network you intend to run it.
 
-```csharp
-var cluster = new NanoClusterEngine();
-```
-``
+
 
 
 ## Feel free to contribute ##
