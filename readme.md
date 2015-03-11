@@ -21,7 +21,7 @@ The minimal configuration you need to get up and running in 3 steps:
 
 **3** Agree with you it's not fun, sorry no nuget yet. Yes, is that simple.
 
-## 0 configuration ##
+## Zero configuration ##
 Automatic Peer Discovery, that's right. UDP broadcast is a prerequisite. If you are running in the cloud make sure is available. Run the following code at your endpoint start up
 
 ```csharp
@@ -54,7 +54,8 @@ while (true)
 }
 ```
 
-
+## Samples ##
+The project comes along with samples. For now we have examples of 2 clusters, static and automatic discovery configuration. 
 
 
 
