@@ -1,6 +1,8 @@
 ## NanoCluster  
 
-**NanoCluster** is a non intrusive leader-election implementation for .NET. Use it when :
+**NanoCluster** is a non intrusive leader-election implementation for .NET. 
+
+Use it when :
 
 - a set of endpoints are mutating the same state and you want to allow just one
 - you want to enforce authority or to coordinate a set of services
