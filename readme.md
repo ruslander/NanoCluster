@@ -13,13 +13,12 @@ No leaking abstractions, code against small foot print Api.
 
 
 ## Distribution ##
-The minimal configuration you need to get up and running in 3 steps:
 
 **1** Clone this, build and after copy from bin into your project's lib folder 2 DLL's ```NanoCluster.dl``` and ```NetMQ.dll``` 
 
 **2** Reference both DLL's in any endpoint which needs coordination
 
-**3** Agree with you it's not fun, sorry no nuget yet. Yes, is that simple.
+**3** Agree with you it's not fun, sorry no nuget yet
 
 ## Zero configuration ##
 Automatic Peer Discovery, that's right. If you are running in the cloud make sure UDP broadcast is available. Run the parameter-less constructor overload at your endpoint start up
