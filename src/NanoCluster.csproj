@@ -47,10 +47,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ClusterConfig.cs" />
+    <Compile Include="Config\ClusterConfig.cs" />
+    <Compile Include="Config\ClusterStaticConfig.cs" />
     <Compile Include="ContinuousElectionRunner.cs" />
     <Compile Include="ElectionReplayEndpoint.cs" />
     <Compile Include="NanoClusterEngine.cs" />
+    <Compile Include="Config\ClusterAutoConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

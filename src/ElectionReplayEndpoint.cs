@@ -1,4 +1,4 @@
-using System.Text;
+using NanoCluster.Config;
 using NetMQ;
 
 namespace NanoCluster
@@ -8,10 +8,10 @@ namespace NanoCluster
         public void Run(ClusterConfig cfg2)
         {
             using (NetMQContext context = NetMQContext.Create())
-            using (NetMQSocket server = context.CreateResponseSocket())
+            using (NetMQSocket responder = context.CreateResponseSocket())
             {
-                server.Options.ReceiveTimeout = cfg2.ElectionMessageReceiveTimeoutSeconds;
-                server.Bind(cfg2.Host);
+                responder.Options.ReceiveTimeout = cfg2.ElectionMessageReceiveTimeoutSeconds;
+                cfg2.BindByConfigType(responder);
 
                 for (;;)
                 {
@@ -19,7 +19,7 @@ namespace NanoCluster
 
                     try
                     {
-                        message = server.ReceiveString();
+                        message = responder.ReceiveString();
                     }
                     catch (AgainException e)
                     {
@@ -27,7 +27,7 @@ namespace NanoCluster
 
                     if (message == "ELECTION")
                     {
-                        server.Send("OK");
+                        responder.Send("OK");
                     }
                 }
             }
