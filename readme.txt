@@ -1,18 +1,33 @@
-NanoCluster
+## NanoCluster  
 
-Yes, a small footprint clustering infrastructure over NetMq.
-Leader election is done accoring to Bully algorhitm http://en.wikipedia.org/wiki/Bully_algorithm
+**NanoCluster** is a non intrusive leader-election implementation for .NET. Use it when :
+
+- a set of endpoints are mutating the same state and you want to allow just one
+- you want to enforce authority or to coordinate a set of services
+- Zookeeper is an overkill
+
+All the boilerplate code is encapsulated in the implementation details which we took care of.  
+No leaking abstractions, code against small foot print Api.
 
 
-How to use it 
+## Distribution ##
+The minimal configuration you need to get up and running in 3 steps:
 
-1) define the list of host:port for each member you want to participate in the cluster
-3) use host:port to create an instance of NanoClusterEngine in each app domain
-2) at run-time you can check the IsCoordinatorProcess on NanoClusterEngine 
- 
+**1** Clone this, build and after copy from bin into your project's lib folder 2 DLL's ```NanoCluster.dl```l and ```NetMQ.dll``` 
 
-Usage
+**2** Reference both DLL's in any endpoint which needs coordination
 
+**3** Agree with you it's not fun, sorry no nuget yet. Yes, is that simple.
+
+## Static configuration ##
+This is the way to run it it on premise when the node ip addresses are well known and rarely change.
+
+1. define the list of host:port for each member you want to participate in the cluster   
+2. use host:port to create an instance of NanoClusterEngine in each app domain
+3. at run-time you can check the IsCoordinatorProcess on NanoClusterEngine
+
+
+```csharp
 var cluster = new NanoClusterEngine(
     // engine host	
     "tcp://localhost:5555",
@@ -27,4 +42,16 @@ while (true)
     var whoami = (cluster.IsCoordinatorProcess ? "leader" : "follower");
     Console.WriteLine("Cli \\> " + whoami);
 }
+```
 
+## Automatic Peer Discovery ##
+0 configuration, that's right. UDP broadcast a prerequisite in the network you intend to run it.
+
+```csharp
+var cluster = new NanoClusterEngine();
+```
+``
+
+
+## Feel free to contribute ##
+or ping me at [@ruslanrusu](https://twitter.com/ruslanrusu) if you have any questions
