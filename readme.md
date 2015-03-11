@@ -1,6 +1,6 @@
 ## NanoCluster  
 
-**NanoCluster** is a non intrusive leader-election implementation for .NET. 
+**NanoCluster** is a non intrusive leader-election library for .NET. 
 
 Use it when :
 
