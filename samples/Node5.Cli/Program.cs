@@ -8,7 +8,7 @@ namespace Node5.Cli
     {
         static void Main(string[] args)
         {
-            var cluster = new NanoClusterEngine();
+            var cluster = new NanoClusterEngine("A");
 
             while (true)
             {

@@ -17,6 +17,13 @@ namespace NanoCluster
             Bootstrap(config);
         }
 
+        public NanoClusterEngine(string name)
+        {
+            var config = new ClusterAutoConfig();
+            config.ClusterName = name;
+            Bootstrap(config);
+        }
+
         public NanoClusterEngine(string host, string membersByPriority)
         {
             var config = new ClusterStaticConfig(host, membersByPriority);

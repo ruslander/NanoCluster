@@ -9,11 +9,13 @@ namespace NanoCluster.Config
 {
     public class ClusterAutoConfig : ClusterConfig
     {
-        private NetMQContext Context = NetMQContext.Create();
+        private readonly NetMQContext Context = NetMQContext.Create();
         private readonly TimeSpan DeadNodeTimeout = TimeSpan.FromSeconds(10);
         private readonly Dictionary<ActiveNode, DateTime> ActiveNodes = new Dictionary<ActiveNode, DateTime>();
+        private readonly Random Rnd = new Random();
 
         private string _randomPort;
+        public string ClusterName = string.Empty;
 
         public override void BindByConfigType(NetMQSocket responder)
         {
@@ -21,7 +23,15 @@ namespace NanoCluster.Config
 
             var advertizer = new NetMQBeacon(Context);
             advertizer.Configure(9999);
-            advertizer.Publish(_randomPort + " " + DateTime.Now.Ticks, TimeSpan.FromSeconds(2));
+
+            var info = new ActiveNode()
+            {
+                ClusterName = ClusterName,
+                Name = "Node" + Rnd.Next(100, DateTime.Now.Millisecond),
+                Port = _randomPort
+            };
+
+            advertizer.Publish(info.ToString(), TimeSpan.FromSeconds(2));
         }
 
         public ClusterAutoConfig()
@@ -49,15 +59,15 @@ namespace NanoCluster.Config
                 using (var receptor = new NetMQBeacon(Context))
                 {
                     receptor.Configure(9999);
-                    receptor.Subscribe("");
+                    receptor.Subscribe(ClusterName);
 
                     while (true)
                     {
                         string peerName;
-                        var portAndTicks = receptor.ReceiveString(out peerName);
-                        var nodeName = peerName.Replace(":9999", "");
+                        var memberInfoAsString = receptor.ReceiveString(out peerName);
+                        var host = peerName.Replace(":9999", "");
 
-                        var activeNode = new ActiveNode(nodeName, portAndTicks);
+                        var activeNode = ActiveNode.Parse(host, memberInfoAsString);
 
                         if (activeNode.Port == _randomPort)
                             Host = activeNode.Uri;
@@ -81,49 +91,53 @@ namespace NanoCluster.Config
             return ActiveNodes.Keys.OrderByDescending(x => x.Uptime).Select(x => x.Uri).ToArray();
         }
 
-        public class ActiveNode
+        public class ActiveNode : IEquatable<ActiveNode>
         {
-            public ActiveNode(string name, string portAndTicks)
+            public string Host;
+            public string Uri;
+            public string ClusterName;
+            public string Name;
+            public string Uptime;
+            public string Port;
+
+            public ActiveNode()
             {
-                Name = name;
-
-                var parts = portAndTicks.Split(' ');
-
-                Port = parts[0];
-                Uptime = long.Parse(parts[1]);
-
-                Uri = string.Format("tcp://{0}:{1}", name, Port);
+                Uptime = DateTime.Now.Ticks.ToString();
             }
 
-            public string Uri { get; private set; }
-            public string Name { get; private set; }
-            public string Port { get; private set; }
-            public long Uptime { get; private set; }
-
-            public override string ToString()
+            public static ActiveNode Parse(string host, string payload)
             {
-                return Name + ":" + Port;
-            }
+                var parts = payload.Split('|');
 
-            protected bool Equals(ActiveNode other)
-            {
-                return string.Equals(Name, other.Name) && Port == other.Port;
+                return new ActiveNode()
+                {
+                    ClusterName = parts[0],
+                    Name = parts[1],
+                    Port = parts[2],
+                    Uptime = parts[3],
+                    Host = host,
+                    Uri = string.Format("tcp://{0}:{1}", host, parts[2])
+                };
             }
 
             public override bool Equals(object obj)
             {
-                if (ReferenceEquals(null, obj)) return false;
-                if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
-                return Equals((ActiveNode)obj);
+                return Equals(obj as ActiveNode);
+            }
+
+            public bool Equals(ActiveNode other)
+            {
+                return other != null && other.Uri == this.Uri;
             }
 
             public override int GetHashCode()
             {
-                unchecked
-                {
-                    return ((Name != null ? Name.GetHashCode() : 0) * 397) ^ Port.GetHashCode();
-                }
+                return (Host.GetHashCode() * 397) ^ Port.GetHashCode();
+            }
+
+            public override string ToString()
+            {
+                return ClusterName + "|" + Name + "|" + Port + "|" + Uptime;
             }
         }
     }
