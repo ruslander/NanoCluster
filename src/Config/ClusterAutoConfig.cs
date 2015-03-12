@@ -27,7 +27,7 @@ namespace NanoCluster.Config
             var info = new ActiveNode()
             {
                 ClusterName = ClusterName,
-                Name = "Node" + Rnd.Next(100, DateTime.Now.Millisecond),
+                Name = "Node" + Rnd.Next(1, DateTime.Now.Millisecond),
                 Port = _randomPort
             };
 

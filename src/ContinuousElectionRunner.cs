@@ -52,12 +52,22 @@ namespace NanoCluster
             }
         }
 
+        public string PreviuosLeader = string.Empty;
+
+        public void WriteOnChange(string text, string leader)
+        {
+            if (PreviuosLeader == leader) 
+                return;
+
+            Console.WriteLine(text);
+            PreviuosLeader = leader;
+        }
+
         public virtual void HoldElection(string host, IList<string> authoritiesForMe)
         {
             if (!authoritiesForMe.Any())
             {
-                // i have the highest priority step up
-                Console.WriteLine("I have the highest priority, taking the cluster leadership !!!");
+                WriteOnChange("I have the highest priority set up, taking the cluster leadership", "me");
                 IsCoordinatorProcess = true;
                 return;
             }
@@ -66,21 +76,17 @@ namespace NanoCluster
             {
                 if (TriggerElection(candidate) == CandidateStatus.Alive)
                 {
+                    WriteOnChange("Node " + candidate + " has higher priority and is alive, cancel this election",candidate);
                     IsCoordinatorProcess = false;
-
-                    // if there is alive a candidate with higher id then, back off
-                    Console.WriteLine("Node '{0}' with higher priority is alive, backing off", candidate);
                     return;
                 }
                 else
                 {
-                    // this node is dead keep going
-                    Console.WriteLine("Node '{0}' is unavailable, moving on", candidate);
+                    Console.WriteLine("Node " + candidate + " is unreachable");
                 }
             }
 
-            // if nobody responds then step up
-            Console.WriteLine("None from my authoritative list of nodes are available, taking over the cluster !!!");
+            WriteOnChange("Nobody from my authoritative list of nodes are available, taking over the cluster", "me");
             IsCoordinatorProcess = true;
         }
 
