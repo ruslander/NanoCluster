@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using NetMQ;
+using Timer = System.Timers.Timer;
 
 namespace NanoCluster.Config
 {
@@ -14,30 +17,13 @@ namespace NanoCluster.Config
         private readonly Dictionary<ActiveNode, DateTime> ActiveNodes = new Dictionary<ActiveNode, DateTime>();
         private readonly Random Rnd = new Random();
 
-        private string _randomPort;
+        readonly ManualResetEventSlim _initializationCoordinator = new ManualResetEventSlim(false);
+
         public string ClusterName = string.Empty;
-
-        public override void BindByConfigType(NetMQSocket responder)
-        {
-            _randomPort = responder.BindRandomPort("tcp://*").ToString();
-
-            var advertizer = new NetMQBeacon(Context);
-            advertizer.Configure(9999);
-
-            var info = new ActiveNode()
-            {
-                ClusterName = ClusterName,
-                Name = "Node" + Rnd.Next(1, DateTime.Now.Millisecond),
-                Port = _randomPort
-            };
-
-            advertizer.Publish(info.ToString(), TimeSpan.FromSeconds(2));
-        }
 
         public ClusterAutoConfig()
         {
             var timer = new Timer(10 * 1000);
-
             timer.Elapsed += (sender, eventArgs) =>
             {
                 var deadNodes = ActiveNodes.
@@ -51,26 +37,41 @@ namespace NanoCluster.Config
                     ApplyChangedPriorityList(GetMembersByPriority());
                 }
             };
-
             timer.Start();
+
+
+            var info = new ActiveNode()
+            {
+                ClusterName = ClusterName,
+                Name = "Node" + Rnd.Next(1, DateTime.Now.Millisecond),
+                Port = GetNextFeePort().ToString()
+            };
+
+            var nodeInfoAdvertiser = new NetMQBeacon(Context);
+            nodeInfoAdvertiser.Configure(9999);
+            nodeInfoAdvertiser.Publish(info.ToString(), TimeSpan.FromSeconds(2));
+            
 
             Task.Factory.StartNew(() =>
             {
-                using (var receptor = new NetMQBeacon(Context))
+                using (var discoverClusterMembers = new NetMQBeacon(Context))
                 {
-                    receptor.Configure(9999);
-                    receptor.Subscribe(ClusterName);
+                    discoverClusterMembers.Configure(9999);
+                    discoverClusterMembers.Subscribe(ClusterName);
 
                     while (true)
                     {
                         string peerName;
-                        var memberInfoAsString = receptor.ReceiveString(out peerName);
+                        var memberInfoAsString = discoverClusterMembers.ReceiveString(out peerName);
                         var host = peerName.Replace(":9999", "");
 
                         var activeNode = ActiveNode.Parse(host, memberInfoAsString);
 
-                        if (activeNode.Port == _randomPort)
+                        if (activeNode.Port == info.Port && activeNode.Name == info.Name && activeNode.Uptime == info.Uptime)
+                        {
                             Host = activeNode.Uri;
+                            _initializationCoordinator.Set();
+                        }
 
                         if (!ActiveNodes.ContainsKey(activeNode))
                         {
@@ -84,6 +85,17 @@ namespace NanoCluster.Config
                     }
                 }
             });
+
+            _initializationCoordinator.Wait();
+        }
+
+        static int GetNextFeePort()
+        {
+            var l = new TcpListener(IPAddress.Loopback, 0);
+            l.Start();
+            int port = ((IPEndPoint)l.LocalEndpoint).Port;
+            l.Stop();
+            return port;
         }
 
         private string[] GetMembersByPriority()

@@ -15,14 +15,14 @@ namespace NanoCluster
         Dead,
     }
 
-    public class ContinuousElectionRunner
+    public class ClusteredNode
     {
         public bool IsCoordinatorProcess;
 
         private readonly ClusterConfig _cfg;
         private readonly object _lockObject = new object();
 
-        public ContinuousElectionRunner(ClusterConfig cfg)
+        public ClusteredNode(ClusterConfig cfg)
         {
             _cfg = cfg;
         }

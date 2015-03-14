@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using NetMQ;
 
 namespace NanoCluster.Config
 {
@@ -37,7 +36,5 @@ namespace NanoCluster.Config
                 .Reverse()
                 .ToArray();
         }
-
-        public abstract void BindByConfigType(NetMQSocket responder);
     }
 }

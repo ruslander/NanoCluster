@@ -1,5 +1,3 @@
-using NetMQ;
-
 namespace NanoCluster.Config
 {
     public class ClusterStaticConfig : ClusterConfig
@@ -8,11 +6,6 @@ namespace NanoCluster.Config
         {
             Host = host;
             ApplyChangedPriorityList(membersByPriority.Split(','));
-        }
-
-        public override void BindByConfigType(NetMQSocket responder)
-        {
-            responder.Bind(Host);
         }
     }
 }

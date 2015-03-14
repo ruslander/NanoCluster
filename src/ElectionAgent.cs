@@ -3,15 +3,15 @@ using NetMQ;
 
 namespace NanoCluster
 {
-    public class ElectionReplayEndpoint
+    public class ElectionAgent
     {
-        public void Run(ClusterConfig cfg2)
+        public void Run(ClusterConfig cfg)
         {
-            using (NetMQContext context = NetMQContext.Create())
-            using (NetMQSocket responder = context.CreateResponseSocket())
+            using (var context = NetMQContext.Create())
+            using (var electionReplay = context.CreateResponseSocket())
             {
-                responder.Options.ReceiveTimeout = cfg2.ElectionMessageReceiveTimeoutSeconds;
-                cfg2.BindByConfigType(responder);
+                electionReplay.Options.ReceiveTimeout = cfg.ElectionMessageReceiveTimeoutSeconds;
+                electionReplay.Bind(cfg.Host);
 
                 for (;;)
                 {
@@ -19,7 +19,7 @@ namespace NanoCluster
 
                     try
                     {
-                        message = responder.ReceiveString();
+                        message = electionReplay.ReceiveString();
                     }
                     catch (AgainException e)
                     {
@@ -27,7 +27,7 @@ namespace NanoCluster
 
                     if (message == "ELECTION")
                     {
-                        responder.Send("OK");
+                        electionReplay.Send("OK");
                     }
                 }
             }

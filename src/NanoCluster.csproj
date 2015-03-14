@@ -49,8 +49,8 @@
   <ItemGroup>
     <Compile Include="Config\ClusterConfig.cs" />
     <Compile Include="Config\ClusterStaticConfig.cs" />
-    <Compile Include="ContinuousElectionRunner.cs" />
-    <Compile Include="ElectionReplayEndpoint.cs" />
+    <Compile Include="ClusteredNode.cs" />
+    <Compile Include="ElectionAgent.cs" />
     <Compile Include="NanoClusterEngine.cs" />
     <Compile Include="Config\ClusterAutoConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

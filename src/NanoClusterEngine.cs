@@ -5,10 +5,10 @@ namespace NanoCluster
 {
     public class NanoClusterEngine
     {
-        ContinuousElectionRunner _elector;
+        ClusteredNode _node;
 
         public bool IsCoordinatorProcess {
-            get { return _elector.IsCoordinatorProcess; }
+            get { return _node.IsCoordinatorProcess; }
         }
 
         public NanoClusterEngine()
@@ -19,8 +19,7 @@ namespace NanoCluster
 
         public NanoClusterEngine(string name)
         {
-            var config = new ClusterAutoConfig();
-            config.ClusterName = name;
+            var config = new ClusterAutoConfig {ClusterName = name};
             Bootstrap(config);
         }
 
@@ -32,12 +31,10 @@ namespace NanoCluster
 
         private void Bootstrap(ClusterConfig config)
         {
-            _elector = new ContinuousElectionRunner(config);
+            _node = new ClusteredNode(config);
 
-            var electionReplayer = new ElectionReplayEndpoint();
-
-            Task.Factory.StartNew(() => electionReplayer.Run(config));
-            Task.Factory.StartNew(() => { _elector.Run(); });
+            Task.Factory.StartNew(() => new ElectionAgent().Run(config));
+            Task.Factory.StartNew(() => { _node.Run(); });
         }
     }
 }
