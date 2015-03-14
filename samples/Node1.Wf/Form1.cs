@@ -20,7 +20,7 @@ namespace Node1.Wf
 
         private void tmrRole_Tick(object sender, EventArgs e)
         {
-            lblCoordinationStatus.Text = (_cluster.IsCoordinatorProcess ? "leader" : "follower");
+            lblCoordinationStatus.Text = (_cluster.IsLeadingProcess ? "leader" : "follower");
         }
     }
 }

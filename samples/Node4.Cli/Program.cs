@@ -13,7 +13,7 @@ namespace Node4.Cli
             while (true)
             {
                 Thread.Sleep(1000);
-                Console.WriteLine("Cli \\> " + (cluster.IsCoordinatorProcess ? "leader" : "follower"));
+                Console.WriteLine("Cli \\> " + (cluster.IsLeadingProcess ? "leader" : "follower"));
             }
         }
     }

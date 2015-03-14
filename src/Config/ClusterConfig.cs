@@ -13,6 +13,11 @@ namespace NanoCluster.Config
         {
             get { return TimeSpan.FromSeconds(.5); }
         }
+        
+        public TimeSpan MessageReceiveTimeoutSeconds
+        {
+            get { return TimeSpan.FromSeconds(.5); }
+        }
 
         public TimeSpan ElectionIntervalSeconds
         {
@@ -35,6 +40,11 @@ namespace NanoCluster.Config
                 .ToArray()
                 .Reverse()
                 .ToArray();
+        }
+
+        public string NodeId()
+        {
+            return "Node" + Host.Split(':')[2];
         }
     }
 }

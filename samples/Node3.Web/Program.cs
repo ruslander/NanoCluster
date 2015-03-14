@@ -45,7 +45,7 @@ namespace Node3.Web
         {
             Get["/"] = parameters =>
             {
-                var jsonBytes = Encoding.UTF8.GetBytes((Program.Cluster.IsCoordinatorProcess ? "leader" : "follower"));
+                var jsonBytes = Encoding.UTF8.GetBytes((Program.Cluster.IsLeadingProcess ? "leader" : "follower"));
                 return new Response
                 {
                     ContentType = "application/json",

@@ -1,108 +1,80 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using NanoCluster.Config;
+using NanoCluster.Pipeline;
 using NetMQ;
 
 namespace NanoCluster
 {
-    public enum CandidateStatus
-    {
-        Alive,
-        Dead,
-    }
-
     public class ClusteredNode
     {
-        public bool IsCoordinatorProcess;
+        private readonly ClusterConfig _config;
+        public DistributedProcess Process { get; set; }
 
-        private readonly ClusterConfig _cfg;
-        private readonly object _lockObject = new object();
-
-        public ClusteredNode(ClusterConfig cfg)
+        public ClusteredNode(ClusterConfig config)
         {
-            _cfg = cfg;
+            _config = config;
         }
 
         public void Run()
         {
-            for(;;)
+            using (var context = NetMQContext.Create())
+            using (var mainLoop = context.CreateResponseSocket())
             {
-                lock (_lockObject)
+                mainLoop.Options.ReceiveTimeout = _config.ElectionMessageReceiveTimeoutSeconds;
+                mainLoop.Bind(_config.Host);
+
+                while (true)
                 {
+                    var message = string.Empty;
+
                     try
                     {
-                        //Console.WriteLine("Election instigated by '{0}'.", _local.Uri);
-
-                        HoldElection(_cfg.Host, _cfg.AuthoritiesToMe);
-
-                        //Console.WriteLine("Election instigated by '{0}' COMPLETED.", _local.Uri);
+                        message = mainLoop.ReceiveString();
                     }
-                    catch(Exception ex)
+                    catch (AgainException e)
                     {
-                        Debug.WriteLine("Exception" + ex.ToString());
+                    }
+
+                    if (message == "election")
+                    {
+                        mainLoop.Send("ok");
+                    }
+
+                    if (message == "send")
+                    {
+                        var payload = mainLoop.ReceiveString();
+
+                        var typedMsg = BinarySerializer.Deserialize(payload);
+                        Process.Dispatch(typedMsg);
+
+                        mainLoop.Send("pong");
+                    }
+
+                    if (message == "catchup")
+                    {
+                        var ver = mainLoop.ReceiveString();
+                        var delta = Process.Delta(int.Parse(ver));
+                        
+                        var payload = BinarySerializer.Serialize(delta);
+                        mainLoop.Send(payload);
                     }
                 }
-
-                //Thread.Sleep(TimeSpan.FromSeconds(ElectionIntervalSeconds));
-                Thread.Sleep(_cfg.ElectionIntervalSeconds);
             }
         }
 
-        public string PreviuosLeader = string.Empty;
-
-        public void WriteOnChange(string text, string leader)
+        public object Send(string host, object message)
         {
-            if (PreviuosLeader == leader) 
-                return;
-
-            Console.WriteLine(text);
-            PreviuosLeader = leader;
-        }
-
-        public virtual void HoldElection(string host, IList<string> authoritiesForMe)
-        {
-            if (!authoritiesForMe.Any())
+            using (var context = NetMQContext.Create())
+            using (var client = context.CreateRequestSocket())
             {
-                WriteOnChange("I have the highest priority set up, taking the cluster leadership", "me");
-                IsCoordinatorProcess = true;
-                return;
-            }
+                client.Connect(host);
+                client.Options.ReceiveTimeout = _config.ElectionMessageReceiveTimeoutSeconds;
 
-            foreach (var candidate in authoritiesForMe)
-            {
-                if (TriggerElection(candidate) == CandidateStatus.Alive)
-                {
-                    WriteOnChange("Node " + candidate + " has higher priority and is alive, cancel this election",candidate);
-                    IsCoordinatorProcess = false;
-                    return;
-                }
-                else
-                {
-                    Console.WriteLine("Node " + candidate + " is unreachable");
-                }
-            }
+                var payload = BinarySerializer.Serialize(message);
+                client.SendMore("send").Send(payload);
 
-            WriteOnChange("Nobody from my authoritative list of nodes are available, taking over the cluster", "me");
-            IsCoordinatorProcess = true;
-        }
-
-        public virtual CandidateStatus TriggerElection(string uri)
-        {
-            //Console.WriteLine("Trigger election to '{0}'.", nodeAddress.Uri);
-
-            using (NetMQContext context = NetMQContext.Create())
-            using (NetMQSocket client = context.CreateRequestSocket())
-            {
-                client.Connect(uri);
-                client.Options.ReceiveTimeout = _cfg.ElectionMessageReceiveTimeoutSeconds;
-                client.Send("ELECTION");
-                
                 var reply = string.Empty;
-                
+
                 try
                 {
                     reply = client.ReceiveString();
@@ -114,7 +86,7 @@ namespace NanoCluster
                 client.Options.Linger = TimeSpan.FromSeconds(1); //required
                 client.Close(); //required
 
-                return reply == "OK" ? CandidateStatus.Alive : CandidateStatus.Dead;
+                return reply;
             }
         }
     }
