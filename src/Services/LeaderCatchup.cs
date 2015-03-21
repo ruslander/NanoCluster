@@ -5,22 +5,37 @@ using NanoCluster.Config;
 using NanoCluster.Pipeline;
 using NetMQ;
 
-namespace NanoCluster
+namespace NanoCluster.Services
 {
     public class LeaderCatchup
     {
         private readonly ElectionAgent _elector;
         private readonly ClusterConfig _config;
+        private readonly CancellationTokenSource _terminator;
 
-        public LeaderCatchup(ElectionAgent elector, ClusterConfig config)
+        public LeaderCatchup(ElectionAgent elector, ClusterConfig config, CancellationTokenSource terminator)
         {
             _elector = elector;
             _config = config;
+            _terminator = terminator;
         }
 
         public void Run(DistributedProcess localProcess)
         {
-            while (true)
+            var workerThread = new Thread(() => MainLoop(localProcess));
+            workerThread.Start();
+            Console.WriteLine("LeaderCatchup agent started for '{0}' host.", _config.Host);
+
+            while (!_terminator.IsCancellationRequested) ;
+
+            Console.WriteLine("Disposing LeaderCatchup");
+
+            workerThread.Abort();
+        }
+
+        private void MainLoop(DistributedProcess localProcess)
+        {
+            while (!_terminator.IsCancellationRequested)
             {
                 if (_elector.IsLeadingProcess)
                 {

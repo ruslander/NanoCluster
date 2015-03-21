@@ -12,16 +12,29 @@ namespace NanoCluster.Config
 {
     public class ClusterAutoConfig : ClusterConfig
     {
+        private readonly CancellationTokenSource _terminator;
         private readonly NetMQContext Context = NetMQContext.Create();
         private readonly TimeSpan DeadNodeTimeout = TimeSpan.FromSeconds(10);
         private readonly Dictionary<ActiveNode, DateTime> ActiveNodes = new Dictionary<ActiveNode, DateTime>();
         private readonly Random Rnd = new Random();
+        private Thread workerThread;
 
         readonly ManualResetEventSlim _initializationCoordinator = new ManualResetEventSlim(false);
 
         public string ClusterName = string.Empty;
 
-        public ClusterAutoConfig()
+        public ClusterAutoConfig(CancellationTokenSource terminator)
+        {
+            _terminator = terminator;
+
+            workerThread = new Thread(MainLoop);
+            workerThread.Start();
+
+
+            _initializationCoordinator.Wait();
+        }
+
+        private void MainLoop()
         {
             var timer = new Timer(10 * 1000);
             timer.Elapsed += (sender, eventArgs) =>
@@ -50,7 +63,7 @@ namespace NanoCluster.Config
             var nodeInfoAdvertiser = new NetMQBeacon(Context);
             nodeInfoAdvertiser.Configure(9999);
             nodeInfoAdvertiser.Publish(info.ToString(), TimeSpan.FromSeconds(2));
-            
+
 
             Task.Factory.StartNew(() =>
             {
@@ -59,7 +72,7 @@ namespace NanoCluster.Config
                     discoverClusterMembers.Configure(9999);
                     discoverClusterMembers.Subscribe(ClusterName);
 
-                    while (true)
+                    while (!_terminator.IsCancellationRequested)
                     {
                         string peerName;
                         var memberInfoAsString = discoverClusterMembers.ReceiveString(out peerName);
@@ -84,9 +97,7 @@ namespace NanoCluster.Config
                             ActiveNodes[activeNode] = DateTime.Now;
                     }
                 }
-            });
-
-            _initializationCoordinator.Wait();
+            }, _terminator.Token);
         }
 
         static int GetNextFeePort()
@@ -151,6 +162,12 @@ namespace NanoCluster.Config
             {
                 return ClusterName + "|" + Name + "|" + Port + "|" + Uptime;
             }
+        }
+
+        public override void Dispose()
+        {
+            Console.WriteLine("Disposing ClusterAutoConfig");
+            workerThread.Abort();
         }
     }
 }

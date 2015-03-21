@@ -3,11 +3,11 @@ using System.Linq;
 
 namespace NanoCluster.Config
 {
-    public abstract class ClusterConfig
+    public abstract class ClusterConfig : IDisposable
     {
         public string Host { get; protected set; }
         public string[] PriorityList { get; protected set; }
-        public string[] AuthoritiesToMe { get; protected set; }
+        public string[] AuthoritiesToMe = new string[0];
 
         public TimeSpan ElectionMessageReceiveTimeoutSeconds
         {
@@ -28,6 +28,8 @@ namespace NanoCluster.Config
         {
             return Array.IndexOf(PriorityList, Host) + ")    <<" + Host + ">>        [" + string.Join(",", AuthoritiesToMe.Select(x => x.ToString()).ToArray()) + "]";
         }
+
+        public abstract void Dispose();
 
         protected void ApplyChangedPriorityList(string[] membersByPriority)
         {

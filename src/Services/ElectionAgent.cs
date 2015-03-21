@@ -6,7 +6,7 @@ using System.Threading;
 using NanoCluster.Config;
 using NetMQ;
 
-namespace NanoCluster
+namespace NanoCluster.Services
 {
     public enum CandidateStatus
     {
@@ -20,18 +20,31 @@ namespace NanoCluster
         public string LeaderHost;
 
         private readonly ClusterConfig _cfg;
+        private readonly CancellationTokenSource _terminator;
         private readonly object _lockObject = new object();
 
-        public ElectionAgent(ClusterConfig cfg)
+        public ElectionAgent(ClusterConfig cfg, CancellationTokenSource terminator)
         {
             _cfg = cfg;
+            _terminator = terminator;
         }
 
         public void Run()
         {
+            var workerThread = new Thread(MainLoop);
+            workerThread.Start();
             Console.WriteLine("Election agent started for '{0}' host.", _cfg.Host);
 
-            for(;;)
+            while (!_terminator.IsCancellationRequested) ;
+
+            Console.WriteLine("Disposing Election");
+
+            workerThread.Abort();
+        }
+
+        private void MainLoop()
+        {
+            while (!_terminator.IsCancellationRequested)
             {
                 lock (_lockObject)
                 {
@@ -39,7 +52,7 @@ namespace NanoCluster
                     {
                         HoldElection(_cfg.Host, _cfg.AuthoritiesToMe);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Debug.WriteLine("Exception" + ex.ToString());
                     }

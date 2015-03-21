@@ -1,21 +1,37 @@
 using System;
+using System.Threading;
 using NanoCluster.Config;
 using NanoCluster.Pipeline;
 using NetMQ;
 
-namespace NanoCluster
+namespace NanoCluster.Services
 {
-    public class ClusteredNode
+    public class ClusteringAgent
     {
         private readonly ClusterConfig _config;
+        private readonly CancellationTokenSource _terminator;
         public DistributedProcess Process { get; set; }
 
-        public ClusteredNode(ClusterConfig config)
+        public ClusteringAgent(ClusterConfig config, CancellationTokenSource terminator)
         {
             _config = config;
+            _terminator = terminator;
         }
 
         public void Run()
+        {
+            var workerThread = new Thread(MainLoop);
+            workerThread.Start();
+            Console.WriteLine("Clustering agent started for '{0}' host.", _config.Host);
+            
+            while (!_terminator.IsCancellationRequested);
+
+            Console.WriteLine("Disposing Clustering");
+
+            workerThread.Abort();
+        }
+
+        private void MainLoop(object obj)
         {
             using (var context = NetMQContext.Create())
             using (var mainLoop = context.CreateResponseSocket())
@@ -23,7 +39,7 @@ namespace NanoCluster
                 mainLoop.Options.ReceiveTimeout = _config.ElectionMessageReceiveTimeoutSeconds;
                 mainLoop.Bind(_config.Host);
 
-                while (true)
+                while (!_terminator.IsCancellationRequested)
                 {
                     var message = string.Empty;
 
