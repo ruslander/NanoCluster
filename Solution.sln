@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "H1", "samples\H1\H1.csproj"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "H.Core", "samples\H.Core\H.Core.csproj", "{F4B188FA-1807-478D-B3A5-11795033F470}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NanoCluster.Tests", "tests\NanoCluster.Tests\NanoCluster.Tests.csproj", "{F8F9606C-AD4E-4D4D-851D-A6CED9E1B2D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{F4B188FA-1807-478D-B3A5-11795033F470}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4B188FA-1807-478D-B3A5-11795033F470}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4B188FA-1807-478D-B3A5-11795033F470}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8F9606C-AD4E-4D4D-851D-A6CED9E1B2D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8F9606C-AD4E-4D4D-851D-A6CED9E1B2D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8F9606C-AD4E-4D4D-851D-A6CED9E1B2D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8F9606C-AD4E-4D4D-851D-A6CED9E1B2D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

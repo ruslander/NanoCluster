@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace NanoCluster.Config
 {
-    public abstract class ClusterConfig
+    public abstract class ClusterConfig :IDisposable
     {
         public string Host { get; protected set; }
         public string[] PriorityList { get; protected set; }
@@ -46,5 +46,7 @@ namespace NanoCluster.Config
         {
             return "Node" + Host.Split(':')[2];
         }
+
+        public abstract void Dispose();
     }
 }

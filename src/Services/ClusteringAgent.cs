@@ -1,29 +1,36 @@
 using System;
+using System.Threading;
 using NanoCluster.Config;
 using NanoCluster.Pipeline;
 using NetMQ;
+using NLog;
 
-namespace NanoCluster
+namespace NanoCluster.Services
 {
-    public class ClusteredNode
+    public class ClusteringAgent
     {
-        private readonly ClusterConfig _config;
+        private readonly ClusterConfig _cfg;
+        private readonly CancellationTokenSource _terminator;
+
+        private static readonly Logger Logger = LogManager.GetLogger("ClusteringAgent");
+
         public DistributedProcess Process { get; set; }
 
-        public ClusteredNode(ClusterConfig config)
+        public ClusteringAgent(ClusterConfig cfg, CancellationTokenSource terminator)
         {
-            _config = config;
+            _cfg = cfg;
+            _terminator = terminator;
         }
 
         public void Run()
         {
-            using (var context = NetMQContext.Create())
-            using (var mainLoop = context.CreateResponseSocket())
+            using (NetMQContext _context = NetMQContext.Create())
+            using (var mainLoop = _context.CreateResponseSocket())
             {
-                mainLoop.Options.ReceiveTimeout = _config.ElectionMessageReceiveTimeoutSeconds;
-                mainLoop.Bind(_config.Host);
+                mainLoop.Options.ReceiveTimeout = _cfg.ElectionMessageReceiveTimeoutSeconds;
+                mainLoop.Bind(_cfg.Host);
 
-                while (true)
+                while (!_terminator.IsCancellationRequested)
                 {
                     var message = string.Empty;
 
@@ -35,9 +42,12 @@ namespace NanoCluster
                     {
                     }
 
+                    Logger.Debug("Request " + message);
+
                     if (message == "election")
                     {
                         mainLoop.Send("ok");
+                        Logger.Debug("Reply : ok");
                     }
 
                     if (message == "send")
@@ -48,15 +58,18 @@ namespace NanoCluster
                         Process.Dispatch(typedMsg);
 
                         mainLoop.Send("pong");
+                        Logger.Debug("Reply : pong");
                     }
 
                     if (message == "catchup")
                     {
                         var ver = mainLoop.ReceiveString();
                         var delta = Process.Delta(int.Parse(ver));
-                        
+
                         var payload = BinarySerializer.Serialize(delta);
                         mainLoop.Send(payload);
+                        Logger.Debug("Reply : payload");
+
                     }
                 }
             }
@@ -64,11 +77,11 @@ namespace NanoCluster
 
         public object Send(string host, object message)
         {
-            using (var context = NetMQContext.Create())
-            using (var client = context.CreateRequestSocket())
+            using (NetMQContext _context = NetMQContext.Create())
+            using (var client = _context.CreateRequestSocket())
             {
                 client.Connect(host);
-                client.Options.ReceiveTimeout = _config.ElectionMessageReceiveTimeoutSeconds;
+                client.Options.ReceiveTimeout = _cfg.ElectionMessageReceiveTimeoutSeconds;
 
                 var payload = BinarySerializer.Serialize(message);
                 client.SendMore("send").Send(payload);

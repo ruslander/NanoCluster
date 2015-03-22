@@ -6,24 +6,40 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using NetMQ;
+using NLog;
 using Timer = System.Timers.Timer;
 
 namespace NanoCluster.Config
 {
     public class ClusterAutoConfig : ClusterConfig
     {
-        private readonly NetMQContext Context = NetMQContext.Create();
+        private readonly CancellationTokenSource _terminator;
         private readonly TimeSpan DeadNodeTimeout = TimeSpan.FromSeconds(10);
         private readonly Dictionary<ActiveNode, DateTime> ActiveNodes = new Dictionary<ActiveNode, DateTime>();
         private readonly Random Rnd = new Random();
+        private Thread workerThread;
+        private Timer timer;
+
+        private static readonly Logger Logger = LogManager.GetLogger("ClusterAutoConfig");
 
         readonly ManualResetEventSlim _initializationCoordinator = new ManualResetEventSlim(false);
 
         public string ClusterName = string.Empty;
 
-        public ClusterAutoConfig()
+        public ClusterAutoConfig(CancellationTokenSource terminator)
         {
-            var timer = new Timer(10 * 1000);
+            _terminator = terminator;
+
+            workerThread = new Thread(MainLoop);
+            workerThread.Start();
+
+
+            _initializationCoordinator.Wait();
+        }
+
+        private void MainLoop()
+        {
+            timer = new Timer(10 * 1000);
             timer.Elapsed += (sender, eventArgs) =>
             {
                 var deadNodes = ActiveNodes.
@@ -32,7 +48,7 @@ namespace NanoCluster.Config
 
                 foreach (var node in deadNodes)
                 {
-                    Console.WriteLine("Detected a dead node " + node);
+                    Logger.Warn("Detected a dead node " + node);
                     ActiveNodes.Remove(node);
                     ApplyChangedPriorityList(GetMembersByPriority());
                 }
@@ -47,46 +63,60 @@ namespace NanoCluster.Config
                 Port = GetNextFeePort().ToString()
             };
 
-            var nodeInfoAdvertiser = new NetMQBeacon(Context);
-            nodeInfoAdvertiser.Configure(9999);
-            nodeInfoAdvertiser.Publish(info.ToString(), TimeSpan.FromSeconds(2));
-            
 
             Task.Factory.StartNew(() =>
             {
-                using (var discoverClusterMembers = new NetMQBeacon(Context))
+                using (NetMQContext _context = NetMQContext.Create())
+                using (var nodeInfoAdvertiser = new NetMQBeacon(_context))
                 {
-                    discoverClusterMembers.Configure(9999);
-                    discoverClusterMembers.Subscribe(ClusterName);
+                    nodeInfoAdvertiser.Configure(9999);
+                    nodeInfoAdvertiser.Publish(info.ToString(), TimeSpan.FromSeconds(2));
 
-                    while (true)
+                    while (!_terminator.IsCancellationRequested) ;
+                }
+            }, _terminator.Token);
+
+            Task.Factory.StartNew(() =>
+            {
+                try
+                {
+                    using (NetMQContext _context = NetMQContext.Create())
+                    using (var discoverClusterMembers = new NetMQBeacon(_context))
                     {
-                        string peerName;
-                        var memberInfoAsString = discoverClusterMembers.ReceiveString(out peerName);
-                        var host = peerName.Replace(":9999", "");
+                        discoverClusterMembers.Configure(9999);
+                        discoverClusterMembers.Subscribe(ClusterName);
 
-                        var activeNode = ActiveNode.Parse(host, memberInfoAsString);
-
-                        if (activeNode.Port == info.Port && activeNode.Name == info.Name && activeNode.Uptime == info.Uptime)
+                        while (!_terminator.IsCancellationRequested)
                         {
-                            Host = activeNode.Uri;
-                            _initializationCoordinator.Set();
-                        }
+                            string peerName;
+                            var memberInfoAsString = discoverClusterMembers.ReceiveString(out peerName);
+                            var host = peerName.Replace(":9999", "");
 
-                        if (!ActiveNodes.ContainsKey(activeNode))
-                        {
-                            ActiveNodes.Add(activeNode, DateTime.Now);
-                            Console.WriteLine("New node joining " + activeNode);
+                            var activeNode = ActiveNode.Parse(host, memberInfoAsString);
 
-                            ApplyChangedPriorityList(GetMembersByPriority());
+                            if (activeNode.Port == info.Port && activeNode.Name == info.Name && activeNode.Uptime == info.Uptime)
+                            {
+                                Host = activeNode.Uri;
+                                _initializationCoordinator.Set();
+                            }
+
+                            if (!ActiveNodes.ContainsKey(activeNode))
+                            {
+                                ActiveNodes.Add(activeNode, DateTime.Now);
+                                Logger.Info("New node joining " + activeNode);
+
+                                ApplyChangedPriorityList(GetMembersByPriority());
+                            }
+                            else
+                                ActiveNodes[activeNode] = DateTime.Now;
                         }
-                        else
-                            ActiveNodes[activeNode] = DateTime.Now;
                     }
                 }
-            });
-
-            _initializationCoordinator.Wait();
+                catch (TerminatingException e)
+                {
+                    return;
+                }
+            }, _terminator.Token);
         }
 
         static int GetNextFeePort()
@@ -151,6 +181,13 @@ namespace NanoCluster.Config
             {
                 return ClusterName + "|" + Name + "|" + Port + "|" + Uptime;
             }
+        }
+
+        public override void Dispose()
+        {
+            Logger.Debug("Disposing");
+            workerThread.Abort();
+            timer.Stop();
         }
     }
 }

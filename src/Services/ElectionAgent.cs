@@ -5,8 +5,9 @@ using System.Linq;
 using System.Threading;
 using NanoCluster.Config;
 using NetMQ;
+using NLog;
 
-namespace NanoCluster
+namespace NanoCluster.Services
 {
     public enum CandidateStatus
     {
@@ -20,18 +21,20 @@ namespace NanoCluster
         public string LeaderHost;
 
         private readonly ClusterConfig _cfg;
+        private readonly CancellationTokenSource _terminator;
         private readonly object _lockObject = new object();
 
-        public ElectionAgent(ClusterConfig cfg)
+        private static readonly Logger Logger = LogManager.GetLogger("ElectionAgent");
+
+        public ElectionAgent(ClusterConfig cfg, CancellationTokenSource terminator)
         {
             _cfg = cfg;
+            _terminator = terminator;
         }
 
         public void Run()
         {
-            Console.WriteLine("Election agent started for '{0}' host.", _cfg.Host);
-
-            for(;;)
+            while (!_terminator.IsCancellationRequested)
             {
                 lock (_lockObject)
                 {
@@ -39,7 +42,7 @@ namespace NanoCluster
                     {
                         HoldElection(_cfg.Host, _cfg.AuthoritiesToMe);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Debug.WriteLine("Exception" + ex.ToString());
                     }
@@ -56,7 +59,7 @@ namespace NanoCluster
             if (PreviuosLeader == leader) 
                 return;
 
-            Console.WriteLine(text);
+            Logger.Debug(text);
             PreviuosLeader = leader;
         }
 
@@ -92,18 +95,21 @@ namespace NanoCluster
 
         public virtual CandidateStatus TriggerElection(string uri)
         {
-            using (NetMQContext context = NetMQContext.Create())
-            using (NetMQSocket client = context.CreateRequestSocket())
+            using (NetMQContext ctx = NetMQContext.Create())
+            using (NetMQSocket client = ctx.CreateRequestSocket())
             {
                 client.Connect(uri);
                 client.Options.ReceiveTimeout = _cfg.ElectionMessageReceiveTimeoutSeconds;
                 client.Send("election");
                 
                 var reply = string.Empty;
-                
+
                 try
                 {
+                    Logger.Debug("ElectionAgent Trigger election :" + uri);
                     reply = client.ReceiveString();
+                    Logger.Debug("ElectionAgent Trigger election result : " + reply);
+
                 }
                 catch (AgainException e)
                 {

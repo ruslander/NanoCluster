@@ -4,23 +4,30 @@ using System.Threading;
 using NanoCluster.Config;
 using NanoCluster.Pipeline;
 using NetMQ;
+using NLog;
 
-namespace NanoCluster
+namespace NanoCluster.Services
 {
     public class LeaderCatchup
     {
         private readonly ElectionAgent _elector;
         private readonly ClusterConfig _config;
+        private readonly CancellationTokenSource _terminator;
 
-        public LeaderCatchup(ElectionAgent elector, ClusterConfig config)
+        private static readonly Logger Logger = LogManager.GetLogger("LeaderCatchup");
+
+        public DistributedProcess Process { get; set; }
+
+        public LeaderCatchup(ElectionAgent elector, ClusterConfig config, CancellationTokenSource terminator)
         {
             _elector = elector;
             _config = config;
+            _terminator = terminator;
         }
 
-        public void Run(DistributedProcess localProcess)
+        public void Run()
         {
-            while (true)
+            while (!_terminator.IsCancellationRequested)
             {
                 if (_elector.IsLeadingProcess)
                 {
@@ -28,11 +35,14 @@ namespace NanoCluster
                     continue;
                 }
 
-                var deltas = CatchupFromVersion(_elector.LeaderHost, localProcess.Version);
+                Logger.Debug("Catching up with {0} from {1}", _elector.LeaderHost, Process.Version);
+                var deltas = CatchupFromVersion(_elector.LeaderHost, Process.Version);
+                Logger.Debug("Leader handed {0} events", deltas.Count);
+
 
                 foreach (var evt in deltas)
                 {
-                    localProcess.Apply(evt);
+                    Process.Apply(evt);
                 }
 
                 Thread.Sleep(TimeSpan.FromSeconds(.5));
@@ -41,8 +51,8 @@ namespace NanoCluster
 
         private List<object> CatchupFromVersion(string leaderHost, int version)
         {
-            using (var context = NetMQContext.Create())
-            using (var client = context.CreateRequestSocket())
+            using (NetMQContext _context = NetMQContext.Create())
+            using (var client = _context.CreateRequestSocket())
             {
                 client.Connect(leaderHost);
                 client.Options.ReceiveTimeout = _config.MessageReceiveTimeoutSeconds;

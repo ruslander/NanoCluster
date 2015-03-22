@@ -7,5 +7,10 @@ namespace NanoCluster.Config
             Host = host;
             ApplyChangedPriorityList(membersByPriority.Split(','));
         }
+
+        public override void Dispose()
+        {
+            
+        }
     }
 }

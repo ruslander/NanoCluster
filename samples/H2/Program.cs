@@ -15,7 +15,7 @@ namespace H2
                 Console.Write(cluster.WhoAmI() + "\\>");
                 var input = Console.ReadLine();
 
-                var text = string.Format("{1}> {0} | {2}", cluster.WhoAmI(), DateTime.Now.ToShortTimeString(), input);
+                var text = string.Format("{0} | {1}", cluster.WhoAmI(), input);
 
                 cluster.Send(new NewMessage() { Text = text });
             }

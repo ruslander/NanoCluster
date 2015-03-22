@@ -1,18 +1,23 @@
 ﻿using System;
 using System.Runtime.Serialization;
 using System.Threading;
-using System.Threading.Tasks;
 using NanoCluster.Config;
 using NanoCluster.Pipeline;
+using NanoCluster.Services;
+using NLog;
 
 namespace NanoCluster
 {
     public class NanoClusterEngine
     {
         public DistributedProcess Process = new DistributedProcess();
-        
+        private readonly CancellationTokenSource _terminator = new CancellationTokenSource();
+
+        private static readonly Logger Logger = LogManager.GetLogger("Cluster");
+
+   
         ElectionAgent _elector;
-        ClusteredNode _clusteredNode;
+        ClusteringAgent _clusteringAgent;
         LeaderCatchup _catchup;
         ClusterConfig _config;
 
@@ -24,13 +29,13 @@ namespace NanoCluster
         {
             Process = process;
 
-            _config = new ClusterAutoConfig();
+            _config = new ClusterAutoConfig(_terminator);
             Bootstrap(_config, Process);
         }
 
         public NanoClusterEngine(string name)
         {
-            _config = new ClusterAutoConfig {ClusterName = name};
+            _config = new ClusterAutoConfig(_terminator) { ClusterName = name };
             Bootstrap(_config, Process);
         }
 
@@ -47,40 +52,44 @@ namespace NanoCluster
 
         private void Bootstrap(ClusterConfig config, DistributedProcess process)
         {
-            _elector = new ElectionAgent(config);
-            _clusteredNode = new ClusteredNode(config){Process = process};
-            _catchup = new LeaderCatchup(_elector, config);
+            _elector = new ElectionAgent(config, _terminator);
+            _clusteringAgent = new ClusteringAgent(config, _terminator) { Process = process };
+            _catchup = new LeaderCatchup(_elector, config, _terminator) { Process = process };
 
-            Task.Factory.StartNew(() => { _elector.Run(); });
-            Task.Factory.StartNew(() => { _clusteredNode.Run(); });
+            AgentHost.Run("clustering", _clusteringAgent.Run, _config, _terminator);
+            AgentHost.Run("elector", _elector.Run, _config, _terminator);
 
             while (string.IsNullOrEmpty(_elector.LeaderHost))
-            {
                 Thread.Sleep(1000);
-            }
 
-            Task.Factory.StartNew(() => { _catchup.Run(process); });
+            AgentHost.Run("catchup", _catchup.Run, _config, _terminator);
         }
 
         public void Send(object message)
         {
             if (IsLeadingProcess)
             {
-                Console.WriteLine("Dispatch to processing pipeline '{0}'", message);
+                Logger.Debug("Dispatch to processing pipeline '{0}'", message);
                 Process.Dispatch(message);
                 return ;
             }
 
-            Console.WriteLine("Forwarded to leader '{0}'", message);
+            Logger.Debug("Forwarded to leader '{0}'", message);
 
             try
             {
-                _clusteredNode.Send(_elector.LeaderHost, message);
+                _clusteringAgent.Send(_elector.LeaderHost, message);
             }
             catch (SerializationException e)
             {
                 throw new InvalidOperationException(message.GetType().Name + " Must be decorated with [Serializable] attribute");
             }
+        }
+
+        public void Dispose()
+        {
+            _config.Dispose();
+            _terminator.Dispose();
         }
     }
 }
