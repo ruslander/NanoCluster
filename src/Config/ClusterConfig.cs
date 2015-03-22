@@ -11,7 +11,7 @@ namespace NanoCluster.Config
 
         public TimeSpan ElectionMessageReceiveTimeoutSeconds
         {
-            get { return TimeSpan.FromSeconds(.5); }
+            get { return TimeSpan.FromSeconds(1); }
         }
         
         public TimeSpan MessageReceiveTimeoutSeconds

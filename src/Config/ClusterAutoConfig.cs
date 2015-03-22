@@ -6,18 +6,22 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using NetMQ;
+using NLog;
 using Timer = System.Timers.Timer;
 
 namespace NanoCluster.Config
 {
     public class ClusterAutoConfig : ClusterConfig
     {
+        private readonly NetMQContext _context = NetMQContext.Create();
         private readonly CancellationTokenSource _terminator;
-        private readonly NetMQContext Context = NetMQContext.Create();
         private readonly TimeSpan DeadNodeTimeout = TimeSpan.FromSeconds(10);
         private readonly Dictionary<ActiveNode, DateTime> ActiveNodes = new Dictionary<ActiveNode, DateTime>();
         private readonly Random Rnd = new Random();
         private Thread workerThread;
+        private Timer timer;
+
+        private static readonly Logger Logger = LogManager.GetLogger("ClusterAutoConfig");
 
         readonly ManualResetEventSlim _initializationCoordinator = new ManualResetEventSlim(false);
 
@@ -36,7 +40,7 @@ namespace NanoCluster.Config
 
         private void MainLoop()
         {
-            var timer = new Timer(10 * 1000);
+            timer = new Timer(10 * 1000);
             timer.Elapsed += (sender, eventArgs) =>
             {
                 var deadNodes = ActiveNodes.
@@ -45,7 +49,7 @@ namespace NanoCluster.Config
 
                 foreach (var node in deadNodes)
                 {
-                    Console.WriteLine("Detected a dead node " + node);
+                    Logger.Warn("Detected a dead node " + node);
                     ActiveNodes.Remove(node);
                     ApplyChangedPriorityList(GetMembersByPriority());
                 }
@@ -60,42 +64,49 @@ namespace NanoCluster.Config
                 Port = GetNextFeePort().ToString()
             };
 
-            var nodeInfoAdvertiser = new NetMQBeacon(Context);
+            var nodeInfoAdvertiser = new NetMQBeacon(_context);
             nodeInfoAdvertiser.Configure(9999);
             nodeInfoAdvertiser.Publish(info.ToString(), TimeSpan.FromSeconds(2));
 
 
             Task.Factory.StartNew(() =>
             {
-                using (var discoverClusterMembers = new NetMQBeacon(Context))
+                try
                 {
-                    discoverClusterMembers.Configure(9999);
-                    discoverClusterMembers.Subscribe(ClusterName);
-
-                    while (!_terminator.IsCancellationRequested)
+                    using (var discoverClusterMembers = new NetMQBeacon(_context))
                     {
-                        string peerName;
-                        var memberInfoAsString = discoverClusterMembers.ReceiveString(out peerName);
-                        var host = peerName.Replace(":9999", "");
+                        discoverClusterMembers.Configure(9999);
+                        discoverClusterMembers.Subscribe(ClusterName);
 
-                        var activeNode = ActiveNode.Parse(host, memberInfoAsString);
-
-                        if (activeNode.Port == info.Port && activeNode.Name == info.Name && activeNode.Uptime == info.Uptime)
+                        while (!_terminator.IsCancellationRequested)
                         {
-                            Host = activeNode.Uri;
-                            _initializationCoordinator.Set();
-                        }
+                            string peerName;
+                            var memberInfoAsString = discoverClusterMembers.ReceiveString(out peerName);
+                            var host = peerName.Replace(":9999", "");
 
-                        if (!ActiveNodes.ContainsKey(activeNode))
-                        {
-                            ActiveNodes.Add(activeNode, DateTime.Now);
-                            Console.WriteLine("New node joining " + activeNode);
+                            var activeNode = ActiveNode.Parse(host, memberInfoAsString);
 
-                            ApplyChangedPriorityList(GetMembersByPriority());
+                            if (activeNode.Port == info.Port && activeNode.Name == info.Name && activeNode.Uptime == info.Uptime)
+                            {
+                                Host = activeNode.Uri;
+                                _initializationCoordinator.Set();
+                            }
+
+                            if (!ActiveNodes.ContainsKey(activeNode))
+                            {
+                                ActiveNodes.Add(activeNode, DateTime.Now);
+                                Logger.Info("New node joining " + activeNode);
+
+                                ApplyChangedPriorityList(GetMembersByPriority());
+                            }
+                            else
+                                ActiveNodes[activeNode] = DateTime.Now;
                         }
-                        else
-                            ActiveNodes[activeNode] = DateTime.Now;
                     }
+                }
+                catch (TerminatingException e)
+                {
+                    return;
                 }
             }, _terminator.Token);
         }
@@ -166,8 +177,9 @@ namespace NanoCluster.Config
 
         public override void Dispose()
         {
-            Console.WriteLine("Disposing ClusterAutoConfig");
+            Logger.Debug("Disposing");
             workerThread.Abort();
+            timer.Stop();
         }
     }
 }

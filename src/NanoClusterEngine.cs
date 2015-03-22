@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Runtime.Serialization;
 using System.Threading;
-using System.Threading.Tasks;
 using NanoCluster.Config;
 using NanoCluster.Pipeline;
 using NanoCluster.Services;
@@ -11,7 +10,8 @@ namespace NanoCluster
     public class NanoClusterEngine
     {
         public DistributedProcess Process = new DistributedProcess();
-        private CancellationTokenSource terminator = new CancellationTokenSource();
+
+        private readonly CancellationTokenSource _terminator = new CancellationTokenSource();
         
         ElectionAgent _elector;
         ClusteringAgent _clusteringAgent;
@@ -26,13 +26,13 @@ namespace NanoCluster
         {
             Process = process;
 
-            _config = new ClusterAutoConfig(terminator);
+            _config = new ClusterAutoConfig(_terminator);
             Bootstrap(_config, Process);
         }
 
         public NanoClusterEngine(string name)
         {
-            _config = new ClusterAutoConfig(terminator) { ClusterName = name };
+            _config = new ClusterAutoConfig(_terminator) { ClusterName = name };
             Bootstrap(_config, Process);
         }
 
@@ -49,19 +49,17 @@ namespace NanoCluster
 
         private void Bootstrap(ClusterConfig config, DistributedProcess process)
         {
-            _elector = new ElectionAgent(config, terminator);
-            _clusteringAgent = new ClusteringAgent(config, terminator) { Process = process };
-            _catchup = new LeaderCatchup(_elector, config, terminator);
+            _elector = new ElectionAgent(config, _terminator);
+            _clusteringAgent = new ClusteringAgent(config, _terminator) { Process = process };
+            _catchup = new LeaderCatchup(_elector, config, _terminator) { Process = process };
 
-            Task.Factory.StartNew(() => { _elector.Run(); }, terminator.Token);
-            Task.Factory.StartNew(() => { _clusteringAgent.Run(); }, terminator.Token);
+            AgentHost.Run("clustering",_clusteringAgent.Run, _config, _terminator);
+            AgentHost.Run("elector",_elector.Run, _config, _terminator);
 
             while (string.IsNullOrEmpty(_elector.LeaderHost))
-            {
                 Thread.Sleep(1000);
-            }
 
-            Task.Factory.StartNew(() => { _catchup.Run(process); }, terminator.Token);
+            AgentHost.Run("catchup", _catchup.Run, _config, _terminator);
         }
 
         public void Send(object message)
@@ -87,8 +85,9 @@ namespace NanoCluster
 
         public void Dispose()
         {
+            _terminator.Cancel();
             _config.Dispose();
-            terminator.Cancel();
+
             Thread.Sleep(100);
         }
     }

@@ -4,14 +4,20 @@ using System.Threading;
 using NanoCluster.Config;
 using NanoCluster.Pipeline;
 using NetMQ;
+using NLog;
 
 namespace NanoCluster.Services
 {
     public class LeaderCatchup
     {
         private readonly ElectionAgent _elector;
+        private readonly NetMQContext _context = NetMQContext.Create();
         private readonly ClusterConfig _config;
         private readonly CancellationTokenSource _terminator;
+
+        private static readonly Logger Logger = LogManager.GetLogger("LeaderCatchup");
+
+        public DistributedProcess Process { get; set; }
 
         public LeaderCatchup(ElectionAgent elector, ClusterConfig config, CancellationTokenSource terminator)
         {
@@ -20,20 +26,7 @@ namespace NanoCluster.Services
             _terminator = terminator;
         }
 
-        public void Run(DistributedProcess localProcess)
-        {
-            var workerThread = new Thread(() => MainLoop(localProcess));
-            workerThread.Start();
-            Console.WriteLine("LeaderCatchup agent started for '{0}' host.", _config.Host);
-
-            while (!_terminator.IsCancellationRequested) ;
-
-            Console.WriteLine("Disposing LeaderCatchup");
-
-            workerThread.Abort();
-        }
-
-        private void MainLoop(DistributedProcess localProcess)
+        public void Run()
         {
             while (!_terminator.IsCancellationRequested)
             {
@@ -43,11 +36,14 @@ namespace NanoCluster.Services
                     continue;
                 }
 
-                var deltas = CatchupFromVersion(_elector.LeaderHost, localProcess.Version);
+                Logger.Debug("Catching up with {0} from {1}", _elector.LeaderHost, Process.Version);
+                var deltas = CatchupFromVersion(_elector.LeaderHost, Process.Version);
+                Logger.Debug("Leader handed {0} events", deltas.Count);
+
 
                 foreach (var evt in deltas)
                 {
-                    localProcess.Apply(evt);
+                    Process.Apply(evt);
                 }
 
                 Thread.Sleep(TimeSpan.FromSeconds(.5));
@@ -56,8 +52,7 @@ namespace NanoCluster.Services
 
         private List<object> CatchupFromVersion(string leaderHost, int version)
         {
-            using (var context = NetMQContext.Create())
-            using (var client = context.CreateRequestSocket())
+            using (var client = _context.CreateRequestSocket())
             {
                 client.Connect(leaderHost);
                 client.Options.ReceiveTimeout = _config.MessageReceiveTimeoutSeconds;
