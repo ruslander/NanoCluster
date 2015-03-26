@@ -7,7 +7,7 @@ using NanoCluster.Services;
 
 namespace NanoCluster
 {
-    public class NanoClusterEngine
+    public class NanoClusterEngine : IDisposable
     {
         public DistributedProcess Process = new DistributedProcess();
 

@@ -1,5 +1,4 @@
-﻿using System;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace NanoCluster.Tests
 {
@@ -19,24 +18,22 @@ namespace NanoCluster.Tests
         [Test]
         public void In_two_nodes_cluster_one_will_lead()
         {
-            var node1 = new NanoClusterEngine("A");
-            var node2 = new NanoClusterEngine("A");
-
-            try
+            using (var node1 = new NanoClusterEngine("A"))
+            using (var node2 = new NanoClusterEngine("A"))
             {
                 Assert.IsTrue(node1.IsLeadingProcess);
                 Assert.False(node2.IsLeadingProcess);
+            }
+        }
 
-                
-            }
-            catch (Exception e)
+        [Test]
+        public void Two_nodes_will_not_join_if_have_different_keys()
+        {
+            using (var node1 = new NanoClusterEngine("A"))
+            using (var node2 = new NanoClusterEngine("B"))
             {
-                Console.WriteLine(e);
-            }
-            finally
-            {
-                node1.Dispose();
-                node2.Dispose();
+                Assert.IsTrue(node1.IsLeadingProcess);
+                Assert.IsTrue(node2.IsLeadingProcess);
             }
         }
     }

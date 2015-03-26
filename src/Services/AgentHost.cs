@@ -14,16 +14,19 @@ namespace NanoCluster.Services
         {
             Task.Factory.StartNew(() =>
             {
-                var workerThread = new Thread(new ThreadStart(mainLoop)) {Name = name};
-                workerThread.Start();
-
                 Logger.Info(name.ToUpper() + " agent started [{0}]", cfg.Host);
 
-                while (!terminator.IsCancellationRequested) ;
-
-                Logger.Info("Disposing " + name.ToUpper());
-
-                workerThread.Abort();
+                try
+                {
+                    using (terminator.Token.Register(Thread.CurrentThread.Abort))
+                    {
+                        mainLoop();
+                    }
+                }
+                catch (ThreadAbortException)
+                {
+                    Logger.Info("Disposing " + name.ToUpper());
+                }
 
             }, terminator.Token);
         }
