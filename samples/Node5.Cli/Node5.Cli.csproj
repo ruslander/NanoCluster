@@ -48,9 +48,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <WCFMetadata Include="Service References\" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\src\NanoCluster.csproj">
       <Project>{edc84fc2-dcfa-4155-b92a-98cc1fdf2d2c}</Project>
       <Name>NanoCluster</Name>

@@ -8,14 +8,18 @@ namespace H2
     {
         static void Main(string[] args)
         {
-            var cluster = new NanoClusterEngine(new ClusteredChatProcess());
+            var cluster = new NanoClusterEngine(cfg =>
+            {
+                cfg.DiscoverByClusterKey("Chat");
+                cfg.Process = new ClusteredChatProcess();
+            });
 
             while (true)
             {
                 Console.Write(cluster.WhoAmI() + "\\>");
                 var input = Console.ReadLine();
 
-                var text = string.Format("{1}> {0} | {2}", cluster.WhoAmI(), DateTime.Now.ToShortTimeString(), input);
+                var text = string.Format("{0} | {1}", cluster.WhoAmI(), input);
 
                 cluster.Send(new NewMessage() { Text = text });
             }

@@ -25,11 +25,16 @@ namespace NanoCluster.Config
 
         readonly ManualResetEventSlim _initializationCoordinator = new ManualResetEventSlim(false);
 
-        public string ClusterName = string.Empty;
+        public string ClusterName;
+        private readonly int _gossipOnPort;
 
-        public ClusterAutoConfig(CancellationTokenSource terminator)
+        public ClusterAutoConfig(CancellationTokenSource terminator, string clusterName) : this(terminator, clusterName,9999){}
+
+        public ClusterAutoConfig(CancellationTokenSource terminator, string clusterName, int gossipOnPort)
         {
             _terminator = terminator;
+            ClusterName = clusterName;
+            _gossipOnPort = gossipOnPort;
 
             workerThread = new Thread(MainLoop);
             workerThread.Start();
@@ -65,7 +70,7 @@ namespace NanoCluster.Config
             };
 
             var nodeInfoAdvertiser = new NetMQBeacon(_context);
-            nodeInfoAdvertiser.Configure(9999);
+            nodeInfoAdvertiser.Configure(_gossipOnPort);
             nodeInfoAdvertiser.Publish(info.ToString(), TimeSpan.FromSeconds(2));
 
 
@@ -75,14 +80,14 @@ namespace NanoCluster.Config
                 {
                     using (var discoverClusterMembers = new NetMQBeacon(_context))
                     {
-                        discoverClusterMembers.Configure(9999);
+                        discoverClusterMembers.Configure(_gossipOnPort);
                         discoverClusterMembers.Subscribe(ClusterName);
 
                         while (!_terminator.IsCancellationRequested)
                         {
                             string peerName;
                             var memberInfoAsString = discoverClusterMembers.ReceiveString(out peerName);
-                            var host = peerName.Replace(":9999", "");
+                            var host = peerName.Replace(":" + _gossipOnPort, "");
 
                             var activeNode = ActiveNode.Parse(host, memberInfoAsString);
 

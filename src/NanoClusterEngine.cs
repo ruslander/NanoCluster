@@ -10,6 +10,7 @@ namespace NanoCluster
     public class NanoClusterEngine : IDisposable
     {
         public DistributedProcess Process = new DistributedProcess();
+        public ConfigurationModel Configurer = null;
 
         private readonly CancellationTokenSource _terminator = new CancellationTokenSource();
         
@@ -22,23 +23,28 @@ namespace NanoCluster
             get { return _elector.IsLeadingProcess; }
         }
 
-        public NanoClusterEngine(DistributedProcess process)
+        public NanoClusterEngine()
         {
-            Process = process;
-
-            _config = new ClusterAutoConfig(_terminator);
-            Bootstrap(_config, Process);
-        }
-
-        public NanoClusterEngine(string name)
-        {
-            _config = new ClusterAutoConfig(_terminator) { ClusterName = name };
+            _config = new ClusterAutoConfig(_terminator,"");
             Bootstrap(_config, Process);
         }
 
         public NanoClusterEngine(string host, string membersByPriority)
         {
             _config = new ClusterStaticConfig(host, membersByPriority);
+            Bootstrap(_config, Process);
+        }
+
+        public NanoClusterEngine(Action<ConfigurationModel> configure)
+        {
+            Configurer = new ConfigurationModel(_terminator);
+            configure(Configurer);
+
+            _config = Configurer.Cfg;
+
+            if (Configurer.Process != null)
+                Process = Configurer.Process;
+
             Bootstrap(_config, Process);
         }
 

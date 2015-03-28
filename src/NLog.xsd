@@ -2376,7 +2376,7 @@
           <xs:element name="header" minOccurs="0" maxOccurs="1" type="Layout" />
           <xs:element name="layout" minOccurs="0" maxOccurs="1" type="Layout" />
           <xs:element name="column" minOccurs="0" maxOccurs="unbounded" type="NLog.Layouts.CsvColumn" />
-          <xs:element name="customColumnDelimiter" minOccurs="0" maxOccurs="1" type="xs:string" />
+          <xs:element name="configureColumnDelimiter" minOccurs="0" maxOccurs="1" type="xs:string" />
           <xs:element name="delimiter" minOccurs="0" maxOccurs="1" type="NLog.Layouts.CsvColumnDelimiterMode" />
           <xs:element name="quoteChar" minOccurs="0" maxOccurs="1" type="xs:string" />
           <xs:element name="quoting" minOccurs="0" maxOccurs="1" type="NLog.Layouts.CsvQuotingMode" />
@@ -2397,7 +2397,7 @@
             <xs:documentation>Body layout (can be repeated multiple times).</xs:documentation>
           </xs:annotation>
         </xs:attribute>
-        <xs:attribute name="customColumnDelimiter" type="xs:string">
+        <xs:attribute name="configureColumnDelimiter" type="xs:string">
           <xs:annotation>
             <xs:documentation>Custom column delimiter value (valid when ColumnDelimiter is set to 'Custom').</xs:documentation>
           </xs:annotation>

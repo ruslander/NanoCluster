@@ -12,7 +12,7 @@ namespace H.Core
 
         public void When(MessageAccepted evt)
         {
-            Console.WriteLine(evt.Text);
+            Console.WriteLine("" + evt.Text);
         }
     }
 

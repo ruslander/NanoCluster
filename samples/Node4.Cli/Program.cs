@@ -8,7 +8,7 @@ namespace Node4.Cli
     {
         static void Main(string[] args)
         {
-            var cluster = new NanoClusterEngine("A");
+            var cluster = new NanoClusterEngine();
 
             while (true)
             {

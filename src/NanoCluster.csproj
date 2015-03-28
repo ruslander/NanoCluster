@@ -53,6 +53,7 @@
     <Compile Include="BinarySerializer.cs" />
     <Compile Include="Config\ClusterConfig.cs" />
     <Compile Include="Config\ClusterStaticConfig.cs" />
+    <Compile Include="Config\ConfigurationModel.cs" />
     <Compile Include="Services\ElectionAgent.cs" />
     <Compile Include="Services\ClusteringAgent.cs" />
     <Compile Include="Services\LeaderCatchup.cs" />
