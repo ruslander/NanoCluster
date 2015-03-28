@@ -42,7 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HowToUseTests.cs" />
+    <Compile Include="LeaderCoordenationTests.cs" />
+    <Compile Include="ConfigurationDslTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

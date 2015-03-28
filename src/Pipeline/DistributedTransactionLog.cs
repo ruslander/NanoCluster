@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace NanoCluster.Pipeline
 {
-    public class DistributedProcess
+    public class DistributedTransactionLog
     {
         public int Version = 0;
         public List<object> Changes = new List<object>();

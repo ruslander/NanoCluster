@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using H.Core;
-using NanoCluster;
 using NanoCluster.Pipeline;
+using NUnit.Framework;
 
-namespace H1
+namespace NanoCluster.Tests
 {
-    class Program
+    [TestFixture]
+    public class LeaderCoordenationTests
     {
-        static void Main(string[] args)
+        [Test]
+        public void Sending_a_command_to_follower_will_result_in_a_forward_to_leader()
         {
             var leaderLog = new InProcessDistributedCache();
             var followerLog = new InProcessDistributedCache();
@@ -25,26 +26,17 @@ namespace H1
                 cfg.DistributedTransactions = followerLog;
             }))
             {
-                Thread.Sleep(3000);
-
-                Console.WriteLine(leader.IsLeadingProcess);
-
-                Console.ReadKey();
-
-                Thread.Sleep(3000);
+                Assert.IsTrue(leader.IsLeadingProcess);
 
                 follower.Send(new StoreCommand() { Key = "user", Value = "rsln" });
 
-                Thread.Sleep(15000);
+                Thread.Sleep(350);
 
-                Console.WriteLine(leaderLog.Get("user"));
-                Console.WriteLine(followerLog.Get("user"));
-
-                Console.ReadKey();
+                Assert.AreEqual("rsln", leaderLog.Get("user"));
+                Assert.AreEqual("rsln", followerLog.Get("user"));
             }
         }
     }
-
 
     [Serializable]
     public class StoreCommand
@@ -52,7 +44,7 @@ namespace H1
         public string Key { get; set; }
         public string Value { get; set; }
     }
-
+    
     [Serializable]
     public class EvictCommand
     {
@@ -74,14 +66,14 @@ namespace H1
 
     public class InProcessDistributedCache : DistributedTransactionLog
     {
-        private readonly Dictionary<string, string> _cache = new Dictionary<string, string>();
+        private readonly Dictionary<string,string> _cache = new Dictionary<string, string>(); 
 
         public void Handle(StoreCommand cmd)
         {
-            if (_cache.ContainsKey(cmd.Key))
+            if(_cache.ContainsKey(cmd.Key))
                 return;
 
-            Apply(new ItemAdded() { Key = cmd.Key, Value = cmd.Value });
+            Apply(new ItemAdded(){Key = cmd.Key, Value = cmd.Value});
         }
 
         public void Handle(EvictCommand cmd)
@@ -89,9 +81,9 @@ namespace H1
             if (_cache.ContainsKey(cmd.Key))
                 return;
 
-            Apply(new ItemDeleted() { Key = cmd.Key });
+            Apply(new ItemDeleted() { Key = cmd.Key});
         }
-
+        
         public void When(ItemAdded add)
         {
             _cache.Add(add.Key, add.Value);

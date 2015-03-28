@@ -4,15 +4,18 @@ using System.Threading;
 using NanoCluster.Config;
 using NanoCluster.Pipeline;
 using NanoCluster.Services;
+using NLog;
 
 namespace NanoCluster
 {
     public class NanoClusterEngine : IDisposable
     {
-        public DistributedProcess Process = new DistributedProcess();
+        public DistributedTransactionLog TransactionLog = null;
         public ConfigurationModel Configurer = null;
 
         private readonly CancellationTokenSource _terminator = new CancellationTokenSource();
+
+        private static readonly Logger Logger = LogManager.GetLogger("NanoClusterEngine");
         
         ElectionAgent _elector;
         ClusteringAgent _clusteringAgent;
@@ -26,13 +29,13 @@ namespace NanoCluster
         public NanoClusterEngine()
         {
             _config = new ClusterAutoConfig(_terminator,"");
-            Bootstrap(_config, Process);
+            Bootstrap(_config, TransactionLog);
         }
 
         public NanoClusterEngine(string host, string membersByPriority)
         {
             _config = new ClusterStaticConfig(host, membersByPriority);
-            Bootstrap(_config, Process);
+            Bootstrap(_config, TransactionLog);
         }
 
         public NanoClusterEngine(Action<ConfigurationModel> configure)
@@ -42,10 +45,10 @@ namespace NanoCluster
 
             _config = Configurer.Cfg;
 
-            if (Configurer.Process != null)
-                Process = Configurer.Process;
+            if (Configurer.DistributedTransactions != null)
+                TransactionLog = Configurer.DistributedTransactions;
 
-            Bootstrap(_config, Process);
+            Bootstrap(_config, TransactionLog);
         }
 
         public string WhoAmI()
@@ -53,18 +56,21 @@ namespace NanoCluster
             return (IsLeadingProcess ? "L" : "F") + " " + _config.NodeId();
         }
 
-        private void Bootstrap(ClusterConfig config, DistributedProcess process)
+        private void Bootstrap(ClusterConfig config, DistributedTransactionLog transactions)
         {
             _elector = new ElectionAgent(config, _terminator);
-            _clusteringAgent = new ClusteringAgent(config, _terminator) { Process = process };
-            _catchup = new LeaderCatchup(_elector, config, _terminator) { Process = process };
+            _clusteringAgent = new ClusteringAgent(config, _terminator) { Transactions = transactions };
 
             AgentHost.Run("clustering",_clusteringAgent.Run, _config, _terminator);
             AgentHost.Run("elector",_elector.Run, _config, _terminator);
 
             while (string.IsNullOrEmpty(_elector.LeaderHost))
                 Thread.Sleep(1000);
+            
+            if(transactions == null)
+                return;
 
+            _catchup = new LeaderCatchup(_elector, config, _terminator) { Transactions = transactions };
             AgentHost.Run("catchup", _catchup.Run, _config, _terminator);
         }
 
@@ -72,12 +78,12 @@ namespace NanoCluster
         {
             if (IsLeadingProcess)
             {
-                Console.WriteLine("Dispatch to processing pipeline '{0}'", message);
-                Process.Dispatch(message);
+                Logger.Info("Dispatch to processing pipeline '{0}'", message);
+                TransactionLog.Dispatch(message);
                 return ;
             }
 
-            Console.WriteLine("Forwarded to leader '{0}'", message);
+            Logger.Info("Forwarded to leader '{0}'", message);
 
             try
             {

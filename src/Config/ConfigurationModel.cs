@@ -8,7 +8,7 @@ namespace NanoCluster.Config
         private readonly CancellationTokenSource _terminator;
         
         public ClusterConfig Cfg;
-        public DistributedProcess Process;
+        public DistributedTransactionLog DistributedTransactions;
 
         public ConfigurationModel(CancellationTokenSource terminator)
         {

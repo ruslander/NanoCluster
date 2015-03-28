@@ -59,7 +59,7 @@
     <Compile Include="Services\LeaderCatchup.cs" />
     <Compile Include="NanoClusterEngine.cs" />
     <Compile Include="Config\ClusterAutoConfig.cs" />
-    <Compile Include="Pipeline\DistributedProcess.cs" />
+    <Compile Include="Pipeline\DistributedTransactionLog.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\AgentHost.cs" />
   </ItemGroup>

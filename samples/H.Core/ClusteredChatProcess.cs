@@ -3,7 +3,7 @@ using NanoCluster.Pipeline;
 
 namespace H.Core
 {
-    public class ClusteredChatProcess : DistributedProcess
+    public class ClusteredChatProcess : DistributedTransactionLog
     {
         public void Handle(NewMessage message)
         {

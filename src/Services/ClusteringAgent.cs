@@ -15,7 +15,7 @@ namespace NanoCluster.Services
         private static readonly Logger Logger = LogManager.GetLogger("ClusteringAgent");
         private readonly NetMQContext _context = NetMQContext.Create();
 
-        public DistributedProcess Process { get; set; }
+        public DistributedTransactionLog Transactions { get; set; }
 
         public ClusteringAgent(ClusterConfig cfg, CancellationTokenSource terminator)
         {
@@ -55,16 +55,16 @@ namespace NanoCluster.Services
                         var payload = mainLoop.ReceiveString();
 
                         var typedMsg = BinarySerializer.Deserialize(payload);
-                        Process.Dispatch(typedMsg);
+                        Transactions.Dispatch(typedMsg);
 
-                        mainLoop.Send("pong");
-                        Logger.Debug("Reply : pong");
+                        mainLoop.Send("dispatched");
+                        Logger.Debug("Reply : dispatched");
                     }
 
                     if (message == "catchup")
                     {
                         var ver = mainLoop.ReceiveString();
-                        var delta = Process.Delta(int.Parse(ver));
+                        var delta = Transactions.Delta(int.Parse(ver));
 
                         var payload = BinarySerializer.Serialize(delta);
                         mainLoop.Send(payload);
@@ -89,7 +89,9 @@ namespace NanoCluster.Services
 
                 try
                 {
+                    Logger.Info("Forward to leader :" + host);
                     reply = client.ReceiveString();
+                    Logger.Info("Leader replay result : " + reply);
                 }
                 catch (AgainException e)
                 {

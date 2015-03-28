@@ -11,7 +11,7 @@ namespace H2
             var cluster = new NanoClusterEngine(cfg =>
             {
                 cfg.DiscoverByClusterKey("Chat");
-                cfg.Process = new ClusteredChatProcess();
+                cfg.DistributedTransactions = new ClusteredChatProcess();
             });
 
             while (true)

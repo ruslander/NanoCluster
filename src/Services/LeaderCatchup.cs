@@ -17,7 +17,7 @@ namespace NanoCluster.Services
 
         private static readonly Logger Logger = LogManager.GetLogger("LeaderCatchup");
 
-        public DistributedProcess Process { get; set; }
+        public DistributedTransactionLog Transactions { get; set; }
 
         public LeaderCatchup(ElectionAgent elector, ClusterConfig config, CancellationTokenSource terminator)
         {
@@ -36,14 +36,14 @@ namespace NanoCluster.Services
                     continue;
                 }
 
-                Logger.Debug("Catching up with {0} from {1}", _elector.LeaderHost, Process.Version);
-                var deltas = CatchupFromVersion(_elector.LeaderHost, Process.Version);
+                Logger.Debug("Catching up with {0} from {1}", _elector.LeaderHost, Transactions.Version);
+                var deltas = CatchupFromVersion(_elector.LeaderHost, Transactions.Version);
                 Logger.Debug("Leader handed {0} events", deltas.Count);
 
 
                 foreach (var evt in deltas)
                 {
-                    Process.Apply(evt);
+                    Transactions.Apply(evt);
                 }
 
                 Thread.Sleep(TimeSpan.FromSeconds(.5));
