@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+      <id>NanoCluster</id>
+      <version>$version$</version>
+      <title>NanoCluster</title>
+      <authors>rrusu</authors>
+      <owners>rrusu</owners>
+      <projectUrl>https://github.com/ruslander/NanoCluster</projectUrl>
+      <requireLicenseAcceptance>false</requireLicenseAcceptance>
+      <description>NanoCluster you know for clsutering things</description>
+      <copyright>Copyright 2014</copyright>
+      <tags>NanoCluster Cluster</tags>
+      <dependencies>
+          <dependency id="NetMQ" version="3.3.0.11" />
+          <dependency id="NLog" version="3.2.0.0" />
+      </dependencies>
+  </metadata>
+</package>
