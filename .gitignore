@@ -44,3 +44,4 @@ out/
 *.orig
 DownloadSigned/
 RestSharp.IntegrationTests/config.json
+packaging/

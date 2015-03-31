@@ -26,7 +26,7 @@ Properties {
     $unitTestProject = "NanoCluster.Tests"
     
     $nugetExecutable = "$baseDir\.nuget\nuget.exe"
-	$nuspecFile = "$baseDir\NanoCluster\NanoCluster.nuspec"
+	$nuspecFile = "$sourceDir\NanoCluster.nuspec"
 	$nugetOutDir = "packaging\"
 }
 
@@ -48,7 +48,8 @@ task Test {
 }
 
 task BuildPackage -Depends Release{
-	exec { & "$nugetExecutable" pack $nuspecFile -OutputDirectory $nugetOutDir }
+	New-Item -Force -ItemType directory -Path $nugetOutDir
+	exec { & "$nugetExecutable" pack $nuspecFile -Version $version -OutputDirectory $nugetOutDir }
 }
 
 task Release {
