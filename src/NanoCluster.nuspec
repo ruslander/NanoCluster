@@ -8,8 +8,8 @@
       <owners>rrusu</owners>
       <projectUrl>https://github.com/ruslander/NanoCluster</projectUrl>
       <requireLicenseAcceptance>false</requireLicenseAcceptance>
-      <description>NanoCluster you know for clsutering things</description>
-      <copyright>Copyright 2014</copyright>
+      <description>NanoCluster you know for clustering things</description>
+      <copyright>Copyright 2015</copyright>
       <tags>NanoCluster Cluster</tags>
 	  <licenseUrl>https://www.apache.org/licenses/LICENSE-2.0.html</licenseUrl>
       <dependencies>

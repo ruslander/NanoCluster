@@ -17,7 +17,7 @@ Properties {
     # if not provided, default to 1.0.0.0
     if(!$version)
     {
-        $version = "0.1.0.0"
+        $version = "0.1.0.2"
     }
     # tools
     # change testExecutable as needed, defaults to mstest
@@ -26,7 +26,7 @@ Properties {
     $unitTestProject = "NanoCluster.Tests"
     
     $nugetExecutable = "$baseDir\.nuget\nuget.exe"
-	$nuspecFile = "$sourceDir\NanoCluster.nuspec"
+	$nuspecFile = "$sourceDir\NanoCluster.csproj"
 	$nugetOutDir = "packaging\"
 }
 
