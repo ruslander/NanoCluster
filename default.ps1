@@ -17,7 +17,7 @@ Properties {
     # if not provided, default to 1.0.0.0
     if(!$version)
     {
-        $version = "1.0.0.0"
+        $version = "0.1.0.0"
     }
     # tools
     # change testExecutable as needed, defaults to mstest
